@@ -1,19 +1,8 @@
 pipeline {
     agent any
-    environment {
-        AWS_REGION      = 'ap-south-1'
-        ECR_REGISTRY    = '431445330886.dkr.ecr.ap-south-1.amazonaws.com'
-        IMAGE_FRONTEND  = "${ECR_REGISTRY}/streamingapp-frontend"
-        IMAGE_AUTH      = "${ECR_REGISTRY}/streamingapp-auth"
-        IMAGE_STREAMING = "${ECR_REGISTRY}/streamingapp-streaming"
-        IMAGE_ADMIN     = "${ECR_REGISTRY}/streamingapp-admin"
-        IMAGE_CHAT      = "${ECR_REGISTRY}/streamingapp-chat"
-        AWS_ACCESS_KEY_ID     = "${params.AWS_ACCESS_KEY_ID}"
-        AWS_SECRET_ACCESS_KEY = "${params.AWS_SECRET_ACCESS_KEY}"
-    }
     parameters {
-        string(name: 'AWS_ACCESS_KEY_ID', defaultValue: '', description: 'AWS Access Key ID')
-        password(name: 'AWS_SECRET_ACCESS_KEY', defaultValue: '', description: 'AWS Secret Access Key')
+        string(name: 'AWS_KEY', defaultValue: 'AKIAWI5BFJPDI5E766H6', description: 'AWS Access Key ID')
+        password(name: 'AWS_SECRET', defaultValue: '', description: 'AWS Secret Access Key')
     }
     stages {
         stage('Checkout') {
@@ -33,29 +22,32 @@ pipeline {
         }
         stage('Push to ECR') {
             steps {
-                sh """
-                    export AWS_ACCESS_KEY_ID=${params.AWS_ACCESS_KEY_ID}
-                    export AWS_SECRET_ACCESS_KEY=${params.AWS_SECRET_ACCESS_KEY}
-                    export AWS_DEFAULT_REGION=${AWS_REGION}
+                sh '''
+                    mkdir -p ~/.aws
+                    echo "[default]" > ~/.aws/credentials
+                    echo "aws_access_key_id = $AWS_KEY" >> ~/.aws/credentials
+                    echo "aws_secret_access_key = $AWS_SECRET" >> ~/.aws/credentials
+                    echo "[default]" > ~/.aws/config
+                    echo "region = ap-south-1" >> ~/.aws/config
 
-                    aws ecr get-login-password --region ${AWS_REGION} | \
-                    docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                    aws ecr get-login-password --region ap-south-1 | \
+                    docker login --username AWS --password-stdin 431445330886.dkr.ecr.ap-south-1.amazonaws.com
 
-                    docker tag streamingapp-frontend:latest ${IMAGE_FRONTEND}:latest
-                    docker push ${IMAGE_FRONTEND}:latest
+                    docker tag streamingapp-frontend:latest 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-frontend:latest
+                    docker push 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-frontend:latest
 
-                    docker tag streamingapp-auth:latest ${IMAGE_AUTH}:latest
-                    docker push ${IMAGE_AUTH}:latest
+                    docker tag streamingapp-auth:latest 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-auth:latest
+                    docker push 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-auth:latest
 
-                    docker tag streamingapp-streaming:latest ${IMAGE_STREAMING}:latest
-                    docker push ${IMAGE_STREAMING}:latest
+                    docker tag streamingapp-streaming:latest 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-streaming:latest
+                    docker push 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-streaming:latest
 
-                    docker tag streamingapp-admin:latest ${IMAGE_ADMIN}:latest
-                    docker push ${IMAGE_ADMIN}:latest
+                    docker tag streamingapp-admin:latest 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-admin:latest
+                    docker push 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-admin:latest
 
-                    docker tag streamingapp-chat:latest ${IMAGE_CHAT}:latest
-                    docker push ${IMAGE_CHAT}:latest
-                """
+                    docker tag streamingapp-chat:latest 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-chat:latest
+                    docker push 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-chat:latest
+                '''
             }
         }
     }
