@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chat
+  template:
+    metadata:
+      labels:
+        app: chat
+    spec:
+      containers:
+      - name: chat
+        image: {{ .Values.services.chat.image }}
+        ports:
+        - containerPort: 3004
+        env:
+        - name: PORT
+          value: "3004"
+        - name: MONGO_URI
+          value: mongodb://mongo:27017/streamingapp
+        - name: JWT_SECRET
+          value: changeme
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat
+spec:
+  type: ClusterIP
+  selector:
+    app: chat
+  ports:
+  - port: 3004
+    targetPort: 3004

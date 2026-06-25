@@ -1,0 +1,34 @@
+replicaCount: 1
+
+ecr: 431445330886.dkr.ecr.ap-south-1.amazonaws.com
+
+services:
+  frontend:
+    image: 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-frontend:latest
+    port: 80
+    serviceType: LoadBalancer
+  auth:
+    image: 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-auth:latest
+    port: 3001
+    serviceType: ClusterIP
+  streaming:
+    image: 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-streaming:latest
+    port: 3002
+    serviceType: ClusterIP
+  admin:
+    image: 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-admin:latest
+    port: 3003
+    serviceType: ClusterIP
+  chat:
+    image: 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-chat:latest
+    port: 3004
+    serviceType: ClusterIP
+
+mongo:
+  image: mongo:6
+  port: 27017
+
+env:
+  MONGO_DB: streamingapp
+  JWT_SECRET: changeme
+  AWS_REGION: ap-south-1

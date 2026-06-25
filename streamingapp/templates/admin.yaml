@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admin
+  template:
+    metadata:
+      labels:
+        app: admin
+    spec:
+      containers:
+      - name: admin
+        image: {{ .Values.services.admin.image }}
+        ports:
+        - containerPort: 3003
+        env:
+        - name: PORT
+          value: "3003"
+        - name: MONGO_URI
+          value: mongodb://mongo:27017/streamingapp
+        - name: JWT_SECRET
+          value: changeme
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin
+spec:
+  type: ClusterIP
+  selector:
+    app: admin
+  ports:
+  - port: 3003
+    targetPort: 3003
