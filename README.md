@@ -1,138 +1,131 @@
-# StreamingApp
+# StreamingApp — DevOps Orchestration & Scaling Project
+## HeroVired DevOps Programme — Graded Capstone Project
 
-Stream premium video content, host live watch parties, and manage your catalogue with a modern microservice architecture. The platform now ships with a production-ready admin portal, real-time chat, S3-backed adaptive streaming, and a redesigned cinematic frontend experience.
+## Architecture Overview
+A MERN-based streaming application deployed via a full DevOps pipeline on AWS.
 
-## Architecture
+## Tech Stack
+| Component | Technology |
+|---|---|
+| Frontend | React + Nginx |
+| Auth Service | Node.js/Express |
+| Streaming Service | Node.js/Express |
+| Admin Service | Node.js/Express |
+| Chat Service | Node.js/Express (Socket.io) |
+| Database | MongoDB 6 |
+| Container Registry | Amazon ECR |
+| CI Pipeline | Jenkins |
+| Orchestration | Amazon EKS (Kubernetes 1.34) |
+| Package Manager | Helm v4 |
+| Monitoring | Amazon CloudWatch |
 
-| Service | Port | Description |
-| --- | --- | --- |
-| `authService` | 3001 | User authentication, registration, JWT issuance |
-| `streamingService` | 3002 | Video catalogue, S3 playback endpoints, public APIs |
-| `adminService` | 3003 | Dedicated admin microservice for asset management and uploads |
-| `chatService` | 3004 | Websocket + REST chat for live watch parties |
-| `frontend` | 3000 | React SPA with revamped UI and integrated chat |
-| `mongo` | 27017 | Shared MongoDB instance |
+## Repository Structure
+## Services & Ports
+| Service | Port | Kubernetes Type |
+|---|---|---|
+| Frontend | 80 | LoadBalancer |
+| Auth Service | 3001 | ClusterIP |
+| Streaming Service | 3002 | ClusterIP |
+| Admin Service | 3003 | ClusterIP |
+| Chat Service | 3004 | ClusterIP |
+| MongoDB | 27017 | ClusterIP |
 
-All backend services share common database models and utilities through `backend/common`.
+## Step-by-Step Deployment
 
-## Environment Configuration
+### Prerequisites
+- AWS CLI configured with IAM user credentials
+- Docker Desktop
+- kubectl, eksctl, helm installed
 
-Create an `.env` for each service (or export variables before running). All services accept the standard AWS credentials for S3 access.
-
-### Auth Service (`backend/authService/.env`)
-```ini
-PORT=3001
-MONGO_URI=mongodb://localhost:27017/streamingapp
-JWT_SECRET=changeme
-CLIENT_URLS=http://localhost:3000
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_REGION=ap-south-1
-AWS_S3_BUCKET=
-```
-
-### Streaming Service (`backend/streamingService/.env`)
-```ini
-PORT=3002
-MONGO_URI=mongodb://localhost:27017/streamingapp
-JWT_SECRET=changeme
-CLIENT_URLS=http://localhost:3000
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_REGION=ap-south-1
-AWS_S3_BUCKET=
-AWS_CDN_URL=
-STREAMING_PUBLIC_URL=http://localhost:3002
-```
-
-### Admin Service (`backend/adminService/.env`)
-```ini
-PORT=3003
-MONGO_URI=mongodb://localhost:27017/streamingapp
-JWT_SECRET=changeme
-CLIENT_URLS=http://localhost:3000
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_REGION=ap-south-1
-AWS_S3_BUCKET=
-```
-
-### Chat Service (`backend/chatService/.env`)
-```ini
-PORT=3004
-MONGO_URI=mongodb://localhost:27017/streamingapp
-JWT_SECRET=changeme
-CLIENT_URLS=http://localhost:3000
-```
-
-### Frontend build variables (`frontend/.env` or Docker build args)
-```ini
-REACT_APP_AUTH_API_URL=http://localhost:3001/api
-REACT_APP_STREAMING_API_URL=http://localhost:3002/api
-REACT_APP_STREAMING_PUBLIC_URL=http://localhost:3002
-REACT_APP_ADMIN_API_URL=http://localhost:3003/api/admin
-REACT_APP_CHAT_API_URL=http://localhost:3004/api/chat
-REACT_APP_CHAT_SOCKET_URL=http://localhost:3004
-```
-
-## Running with Docker Compose
-
-1. Populate the environment variables above (or rely on the defaults baked into `docker-compose.yml`).
-2. Build and start the stack:
-   ```bash
-   docker-compose up --build
-   ```
-3. Navigate to `http://localhost:3000` for the web app.
-
-The compose file provisions MongoDB plus all four Node.js microservices. S3 credentials are optional for local testing—you can still browse seeded metadata, but streaming requires valid S3 objects.
-
-## Local Development
-
-Install dependencies for each service:
-
+### 1. Fork and Clone
 ```bash
-# auth service
-cd backend/authService && npm install
-
-# streaming service
-cd ../streamingService && npm install
-
-# admin service
-cd ../adminService && npm install
-
-# chat service
-cd ../chatService && npm install
-
-# frontend
-cd ../../frontend && npm install
+git clone https://github.com/sanojaix-debug/StreamingApp.git
+cd StreamingApp
+cp .env.example .env
 ```
 
-Run the services (in separate terminals) after starting MongoDB:
-
+### 2. Local Testing with Docker Compose
 ```bash
-cd backend/authService && npm run dev
-cd backend/streamingService && npm run dev
-cd backend/adminService && npm run dev
-cd backend/chatService && npm run dev
-cd frontend && npm start
+docker-compose build
+docker-compose up -d
+docker-compose ps
+# Frontend: http://localhost:3000
 ```
 
-## Feature Highlights
+### 3. Push Docker Images to Amazon ECR
+```bash
+aws ecr create-repository --repository-name streamingapp-frontend --region ap-south-1
+aws ecr create-repository --repository-name streamingapp-auth --region ap-south-1
+aws ecr create-repository --repository-name streamingapp-streaming --region ap-south-1
+aws ecr create-repository --repository-name streamingapp-admin --region ap-south-1
+aws ecr create-repository --repository-name streamingapp-chat --region ap-south-1
 
-- **S3-backed adaptive streaming** with secure signed uploads for admins.
-- **Dedicated admin microservice** for video ingestion, metadata management, and featured curation.
-- **Real-time chat** overlay in the player (Socket.IO + persistent message history).
-- **Modern React experience** featuring cinematic hero sections, dynamic carousels, and responsive design.
-- **Role-aware access control** across frontend routes and backend microservices.
+aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 431445330886.dkr.ecr.ap-south-1.amazonaws.com
 
-## Testing
+docker-compose build
+docker tag streamingapp-frontend:latest 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-frontend:latest
+docker push 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-frontend:latest
+# Repeat for all services
+```
 
-Automated tests are not yet included. Recommended smoke checks:
+### 4. Jenkins CI Pipeline
+- URL: https://jenkinsacademics.herovired.com/job/sanoj-streamingapp-ci/
+- Triggers: GitHub webhook on push to main branch
+- Stages: Checkout → Build Images → Push to ECR
 
-1. Register and log in through the web UI.
-2. Upload a small video + thumbnail via the admin dashboard (requires valid S3 credentials).
-3. Confirm playback from the browse page and verify that chat messages broadcast between multiple browser tabs.
+### 5. Create EKS Cluster
+```bash
+eksctl create cluster \
+  --name streamingapp-cluster \
+  --region ap-south-1 \
+  --nodegroup-name standard-nodes \
+  --node-type t3.small \
+  --nodes 2 \
+  --managed \
+  --zones ap-south-1a,ap-south-1b
+```
 
-## License
+### 6. Deploy with Helm
+```bash
+aws eks update-kubeconfig --name streamingapp-cluster --region ap-south-1
+helm install streamingapp ./streamingapp --namespace default
+kubectl get pods
+kubectl get svc
+```
 
-MIT © StreamFlix Team
+### 7. Monitoring
+```bash
+# Enable EKS cluster logging
+aws eks update-cluster-config \
+  --name streamingapp-cluster \
+  --region ap-south-1 \
+  --logging '{"clusterLogging":[{"types":["api","audit","authenticator","controllerManager","scheduler"],"enabled":true}]}'
+
+# Create CloudWatch alarm
+aws cloudwatch put-metric-alarm \
+  --alarm-name "StreamingApp-HighCPU" \
+  --metric-name CPUUtilization \
+  --namespace AWS/EC2 \
+  --statistic Average \
+  --period 300 \
+  --threshold 80 \
+  --comparison-operator GreaterThanThreshold \
+  --evaluation-periods 2 \
+  --region ap-south-1
+```
+
+## Live Application
+- Frontend: http://a6a6596b9f9ce462d9f12296d3cf70e6-966217773.ap-south-1.elb.amazonaws.com
+
+## ECR Repositories
+| Repository | URI |
+|---|---|
+| Frontend | 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-frontend |
+| Auth | 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-auth |
+| Streaming | 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-streaming |
+| Admin | 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-admin |
+| Chat | 431445330886.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-chat |
+
+## Author
+Sanoj Thanasekaran
+HeroVired DevOps Programme
